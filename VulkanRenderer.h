@@ -4,6 +4,7 @@
 #include "GLFW/glfw3.h" 
 #include<vector>
 #include"Utilities.h"
+#include<set>
 
 class VulkanRenderer
 {
@@ -41,6 +42,7 @@ private:
 	} mainDevice;
 
 	VkQueue graphicsQueue;
+	VkQueue PresentationsQueue;
 
 	VkSurfaceKHR surface;
 
@@ -49,19 +51,25 @@ private:
 	void GetPhysicalDevice();
 	void CreateLogicalDevice();
 	void CreateSurface();
+	void createDebugCallback();
+
+	void CreateSwapChain();
 
 	//- Support functions
 
 	//check if we support certaij extensions
 	bool checkIntanceExtensionsSupport(std::vector<const char*> * checkExtensions);
 	bool CheckDeviceSuitable(VkPhysicalDevice device);
+	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+	bool checkValidationLayerSupport();
 
 	//getters 
 
 	QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device);
-	bool checkValidationLayerSupport();
+	SwapChainDetails GetSwapChainDetails(VkPhysicalDevice device);
+
+
 		
-	void createDebugCallback();
 	
 
 };

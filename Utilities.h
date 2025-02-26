@@ -3,16 +3,36 @@
 //indices of locations of queue families
 
 
+const std::vector<const char*> deviceExtensions =
+{
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
+
 struct QueueFamilyIndices
 {
 
 	//check if queue families are valid 
 	int graphicsFamily = -1;
+	int presentationFamily = -1;
 	bool IsValid()
 	{
-		return graphicsFamily >= 0;
+		return graphicsFamily >= 0 && presentationFamily >=0;
 	}
 };
+
+
+struct SwapChainDetails
+{
+	VkSurfaceCapabilitiesKHR surfacecapabilities;  //surface properties image size etc
+	std::vector<VkSurfaceFormatKHR> formats;   // RGBA , and combinations of these 
+	std::vector<VkPresentModeKHR> presentationModes;//how images should be presnted to screen 
+};
+
+
+
+
+
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 	VkDebugReportFlagsEXT flags,				// Type of error
