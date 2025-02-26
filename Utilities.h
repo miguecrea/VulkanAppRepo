@@ -30,6 +30,12 @@ struct SwapChainDetails
 };
 
 
+struct SwapchainImage
+{
+	VkImage Image;
+	VkImageView imageView;
+};
+
 
 
 
