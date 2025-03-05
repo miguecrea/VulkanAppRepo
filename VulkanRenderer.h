@@ -51,7 +51,7 @@ private:
 	//cached values
 
 	VkFormat SwapChainImageFormat;
-	VkExtent2D SwapChainEvent;
+	VkExtent2D SwapChainExtend;
 
 
 	//vector of images struct contains image and image views
@@ -66,6 +66,7 @@ private:
 	void CreateSurface();
 	void createDebugCallback();
 	void CreateSwapChain();
+	void CreateGraphicsPipeline();
 
 
 	//- Support functions
@@ -87,6 +88,8 @@ private:
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
 
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+
+	VkShaderModule CreateShaderModule(const std::vector<char>& code);
 
 		
 	

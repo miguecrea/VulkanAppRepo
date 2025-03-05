@@ -1,7 +1,7 @@
 #pragma once
 
 //indices of locations of queue families
-
+#include<fstream>
 
 const std::vector<const char*> deviceExtensions =
 {
@@ -95,3 +95,29 @@ static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCall
 		func(instance, callback, pAllocator);
 	}
 }
+
+static std::vector<char> readFile(const std::string& filename)
+{
+	//read as binary and start from end 
+	std::ifstream file(filename, std::ios::binary | std::ios::ate);
+
+	if (!file.is_open())
+	{
+		throw std::runtime_error("Failed to opena  file");
+	}
+
+	size_t fileSize = { (size_t)file.tellg()};
+	std::vector<char> fileBuffer(fileSize);
+
+
+	//read from pos 0
+	file.seekg(0);
+
+	//read the file data into the buffer 
+
+	file.read(fileBuffer.data(), fileSize);
+	file.close();
+
+}
+
+ 
