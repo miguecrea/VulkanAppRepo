@@ -2,10 +2,22 @@
 
 //indices of locations of queue families
 #include<fstream>
+#include"glm.hpp"
+
+
+const int MAX_FRAME_DRAWS = 2;
 
 const std::vector<const char*> deviceExtensions =
 {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+
+
+
+struct Vertex
+{
+	glm::vec3 pos; //vertex position
+	glm::vec3 col; //vertex position
 };
 
 
@@ -98,25 +110,32 @@ static void DestroyDebugReportCallbackEXT(VkInstance instance, VkDebugReportCall
 
 static std::vector<char> readFile(const std::string& filename)
 {
-	//read as binary and start from end 
+	
+	// Open stream from given file
+	// std::ios::binary tells stream to read file as binary
+	// std::ios::ate tells stream to start reading from end of file
 	std::ifstream file(filename, std::ios::binary | std::ios::ate);
 
+	// Check if file stream successfully opened
 	if (!file.is_open())
 	{
-		throw std::runtime_error("Failed to opena  file");
+		throw std::runtime_error("Failed to open a file!");
 	}
 
-	size_t fileSize = { (size_t)file.tellg()};
+	// Get current read position and use to resize file buffer
+	size_t fileSize = (size_t)file.tellg();
 	std::vector<char> fileBuffer(fileSize);
 
-
-	//read from pos 0
+	// Move read position (seek to) the start of the file
 	file.seekg(0);
 
-	//read the file data into the buffer 
-
+	// Read the file data into the buffer (stream "fileSize" in total)
 	file.read(fileBuffer.data(), fileSize);
+
+	// Close stream
 	file.close();
+
+	return fileBuffer;
 
 }
 

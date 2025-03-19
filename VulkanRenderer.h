@@ -6,6 +6,7 @@
 #include"Utilities.h"
 #include<set>
 #include<algorithm>
+#include"Mesh.h"
 
 class VulkanRenderer
 {
@@ -15,6 +16,7 @@ public:
 	VulkanRenderer();
 	~VulkanRenderer();
 
+	void Draw();
 	int Init(GLFWwindow* window);
 	void CleanUp();
 
@@ -31,8 +33,17 @@ public:
 
 private:
 
+	//scene Objects 
+	Mesh firstMesh;
+
+
+
+
+
 	GLFWwindow * m_Window;
 	VkInstance m_Instance;
+
+	int currentFrame = 0;
 
 	VkDebugReportCallbackEXT callback;
 
@@ -54,8 +65,31 @@ private:
 	VkExtent2D SwapChainExtend;
 
 
+	std::vector<VkSemaphore>imageAvailable;  //signa when image is available 
+	std::vector<VkSemaphore>RenderFinished; //signal when it ia finiahed rendering  and ready to present to screen
+	std::vector<VkFence> drawFences; 
+
+
+
 	//vector of images struct contains image and image views
 	std::vector<SwapchainImage> swapChainImages;
+	std::vector<VkFramebuffer> swapChainFrameBuffers;  //we gonna have a frame buffer for each image
+	std::vector<VkCommandBuffer> commandBuffers;  
+
+
+	//Pools
+	VkCommandPool graphicsCommandPool;
+
+
+
+
+
+	//pIpleine 
+	VkPipelineLayout pipelineLayout;  
+	VkRenderPass renderPass;
+	VkPipeline graphicsPipeline;
+
+
 
 
 
@@ -66,7 +100,14 @@ private:
 	void CreateSurface();
 	void createDebugCallback();
 	void CreateSwapChain();
+
+	void CreateRenderPass();
 	void CreateGraphicsPipeline();
+	void CreateFrameBuffers();
+	void CreateCommandPool();
+	void CreateCommandBuffers();
+	void RecordCommands();
+	void CreateSynchronization();
 
 
 	//- Support functions
@@ -81,15 +122,13 @@ private:
 
 	QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device);
 	SwapChainDetails GetSwapChainDetails(VkPhysicalDevice device);
-
-
 	VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR> & formats);
 	VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR> & presentationModes);
 	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
-
 	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-
 	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+
+
 
 		
 	

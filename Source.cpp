@@ -20,7 +20,7 @@ VulkanRenderer m_VulkanRenderer;
 
 
 
-void InitWindow(std::string name = "TestWindow", const int width = 800, const int height = 600)
+void InitWindow(std::string name = "Miguel Lozano Vulkan Project", const int width = 800, const int height = 600)
 {
 	//initialize glfw
 	glfwInit();
@@ -47,24 +47,16 @@ int main()
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		glfwPollEvents();
+		m_VulkanRenderer.Draw();
 	}
 
 
+	m_VulkanRenderer.CleanUp();
 	//destroy GLFW
 	glfwDestroyWindow(m_Window);
 	glfwTerminate();
 	
-	
-
 }
-
-
-
-
-
-
-
-
 
 
 //glm THERE IS NO FOLDER BEFORE SO 
