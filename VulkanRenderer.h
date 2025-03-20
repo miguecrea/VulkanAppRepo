@@ -34,7 +34,7 @@ public:
 private:
 
 	//scene Objects 
-	Mesh firstMesh;
+	std::vector<Mesh> meshList;
 
 
 
