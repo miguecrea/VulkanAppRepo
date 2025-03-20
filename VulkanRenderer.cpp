@@ -19,13 +19,20 @@ int VulkanRenderer::Init(GLFWwindow* window)
 		CreateSurface();
 		GetPhysicalDevice();
 		CreateLogicalDevice();
-	
+
 
 		CreateSwapChain(); // swap bvetwen images and presentingto our surface 
 		CreateRenderPass();
+		CreateDesciptorSetLayout();
 		CreateGraphicsPipeline();
 		CreateFrameBuffers();
 		CreateCommandPool();
+
+		mvp.projection = glm::perspective(glm::radians(45.0f), (float)SwapChainExtend.width / (float)SwapChainExtend.height, 0.1f, 100.0f);
+		mvp.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		mvp.model = glm::mat4(1.0f);
+
+		mvp.projection[1][1] *= -1;
 
 
 		std::vector<Vertex> meshVertices = {
@@ -59,10 +66,13 @@ int VulkanRenderer::Init(GLFWwindow* window)
 		meshList.push_back(secondMesh);
 
 		CreateCommandBuffers();
+		CreateUniformBuffers();
+		CreateDesciptorPool();
+		CreateDescriptorSets();
 		RecordCommands();
 		CreateSynchronization();
 
-		
+
 	}
 	catch (const std::runtime_error& e)
 	{
@@ -73,13 +83,27 @@ int VulkanRenderer::Init(GLFWwindow* window)
 	return 0;
 }
 
+void VulkanRenderer::UpdateModel(glm::mat4 newModel)
+{
+	mvp.model = newModel;
+}
+
 void VulkanRenderer::CleanUp()
 {
 
 	//waiting Idle until no actions qre being perfromed 
 	vkDeviceWaitIdle(mainDevice.logicalDevice);
 
-	
+	vkDestroyDescriptorPool(mainDevice.logicalDevice, descriptorpool, nullptr);
+
+	vkDestroyDescriptorSetLayout(mainDevice.logicalDevice, descriptorSetLayout, nullptr);
+
+	for (size_t i = 0; i < uniformBuffer.size(); i++)
+	{
+		vkDestroyBuffer(mainDevice.logicalDevice, uniformBuffer[i], nullptr);
+		vkFreeMemory(mainDevice.logicalDevice, uniformBufferMemory[i], nullptr);
+	}
+
 	for (size_t i = 0; i < meshList.size(); i++)
 	{
 		meshList[i].destroyBuffers();
@@ -90,7 +114,7 @@ void VulkanRenderer::CleanUp()
 		vkDestroySemaphore(mainDevice.logicalDevice, imageAvailable[i], nullptr);
 		vkDestroyFence(mainDevice.logicalDevice, drawFences[i], nullptr);
 	}
-	 
+
 
 	vkDestroyCommandPool(mainDevice.logicalDevice, graphicsCommandPool, nullptr);
 
@@ -129,7 +153,7 @@ void VulkanRenderer::Draw()
 	// 
 	// 
 
-	vkWaitForFences(mainDevice.logicalDevice, 1,&drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkWaitForFences(mainDevice.logicalDevice, 1, &drawFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 	vkResetFences(mainDevice.logicalDevice, 1, &drawFences[currentFrame]);
 
 
@@ -137,6 +161,8 @@ void VulkanRenderer::Draw()
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(mainDevice.logicalDevice, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailable[currentFrame], VK_NULL_HANDLE, &imageIndex);
 
+
+	UpdateUniformBuffers(imageIndex);
 
 	//wait for current fence to signal pen from last frame draw 
 
@@ -146,7 +172,7 @@ void VulkanRenderer::Draw()
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = &imageAvailable[currentFrame];				
+	submitInfo.pWaitSemaphores = &imageAvailable[currentFrame];
 	VkPipelineStageFlags waitStages[] = {
 		VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 	};
@@ -163,13 +189,13 @@ void VulkanRenderer::Draw()
 
 
 	//signal this fence here 
-	VkResult result = vkQueueSubmit(graphicsQueue,1, &submitInfo,drawFences[currentFrame]);
+	VkResult result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, drawFences[currentFrame]);
 	if (result != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to submit Command Buffer to Queue!");
 	}
 
-	 
+
 
 
 	// -- PRESENT RENDERED IMAGE TO SCREEN --
@@ -719,7 +745,7 @@ VkImageView VulkanRenderer::CreateImageView(VkImage image, VkFormat format, VkIm
 
 }
 
-VkShaderModule VulkanRenderer::CreateShaderModule(const std::vector<char> & code)
+VkShaderModule VulkanRenderer::CreateShaderModule(const std::vector<char>& code)
 {
 	VkShaderModuleCreateInfo shaderModuleCreateInfo{};
 	shaderModuleCreateInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -936,7 +962,7 @@ void VulkanRenderer::CreateRenderPass()
 
 
 
-	//Render pass in  NUTSHELL
+  //Render pass in  NUTSHELL
 
 	VkAttachmentDescription colourAttachment = {};
 	colourAttachment.format = SwapChainImageFormat;						// Format to use for attachment
@@ -963,7 +989,7 @@ void VulkanRenderer::CreateRenderPass()
 	colourAttachmentReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
 	VkSubpassDescription subpass = {};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;		
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colourAttachmentReference;
 
@@ -1008,6 +1034,37 @@ void VulkanRenderer::CreateRenderPass()
 
 }
 
+void VulkanRenderer::CreateDesciptorSetLayout()
+{
+
+
+
+
+	VkDescriptorSetLayoutBinding mvpLayoutBinding = {};
+	mvpLayoutBinding.binding = 0;											// Binding point in shader (designated by binding number in shader)
+	mvpLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;	// Type of descriptor (uniform, dynamic uniform, image sampler, etc)
+	mvpLayoutBinding.descriptorCount = 1;									// Number of descriptors for binding
+	mvpLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;				// Shader stage to bind to
+	mvpLayoutBinding.pImmutableSamplers = nullptr;							// For Texture: Can make sampler data unchangeable (immutable) by specifying in layout
+
+	// Create Descriptor Set Layout with given bindings
+	VkDescriptorSetLayoutCreateInfo layoutCreateInfo = {};
+	layoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutCreateInfo.bindingCount = 1;					// Number of binding infos
+	layoutCreateInfo.pBindings = &mvpLayoutBinding;		// Array of binding infos
+
+	// Create Descriptor Set Layout
+	VkResult result = vkCreateDescriptorSetLayout(mainDevice.logicalDevice, &layoutCreateInfo, nullptr, &descriptorSetLayout);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create a Descriptor Set Layout!");
+	}
+
+
+
+
+}
+
 void VulkanRenderer::CreateGraphicsPipeline()
 {
 
@@ -1022,7 +1079,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
 
 	VkShaderModule vertexShaderModule = CreateShaderModule(vertexShaderCode);
 	VkShaderModule fragmentShaderModule = CreateShaderModule(fragmentShaderCode);
-	
+
 
 	// -- SHADER STAGE CREATION INFORMATION --
 	// 
@@ -1049,7 +1106,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
 	VkPipelineShaderStageCreateInfo shaderStages[] = { vertexShaderCreateInfo, fragmentShaderCreateInfo };
 
 
-	
+
 
 	//how the data for a single vertex is 
 
@@ -1170,7 +1227,7 @@ void VulkanRenderer::CreateGraphicsPipeline()
 	rasterizerCreateInfo.polygonMode = VK_POLYGON_MODE_FILL;	// How to handle filling points between vertices
 	rasterizerCreateInfo.lineWidth = 1.0f;						// How thick lines should be when drawn
 	rasterizerCreateInfo.cullMode = VK_CULL_MODE_BACK_BIT;		// Which face of a tri to cull
-	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;	// Winding to determine which side is front
+	rasterizerCreateInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;	// Winding to determine which side is front
 	rasterizerCreateInfo.depthBiasEnable = VK_FALSE;			// Whether to add depth bias to fragments (good for stopping "shadow acne" in shadow mapping)
 
 
@@ -1223,8 +1280,8 @@ void VulkanRenderer::CreateGraphicsPipeline()
 	// -- PIPELINE LAYOUT (TODO: Apply Future Descriptor Set Layouts) --
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 	pipelineLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutCreateInfo.setLayoutCount = 0;
-	pipelineLayoutCreateInfo.pSetLayouts = nullptr;
+	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	pipelineLayoutCreateInfo.pSetLayouts = &descriptorSetLayout;
 	pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
 	pipelineLayoutCreateInfo.pPushConstantRanges = nullptr;
 
@@ -1430,12 +1487,20 @@ void VulkanRenderer::RecordCommands()
 			// Bind mesh index buffer, with 0 offset and using the uint32 type
 			vkCmdBindIndexBuffer(commandBuffers[i], meshList[j].getIndexBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
+
+
+			// Bind Descriptor Sets
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
+				0, 1, &descriptorSets[i], 0, nullptr);
+
+
+
 			// Execute pipeline
 			vkCmdDrawIndexed(commandBuffers[i], meshList[j].getIndexCount(), 1, 0, 0, 0);
 		}
 
 
-		
+
 
 
 
@@ -1453,7 +1518,7 @@ void VulkanRenderer::RecordCommands()
 
 void VulkanRenderer::CreateSynchronization()
 {
-	
+
 	imageAvailable.resize(MAX_FRAME_DRAWS);
 	RenderFinished.resize(MAX_FRAME_DRAWS);
 	drawFences.resize(MAX_FRAME_DRAWS);
@@ -1476,4 +1541,98 @@ void VulkanRenderer::CreateSynchronization()
 			throw std::runtime_error("Failed to create a Semaphore and/or Fence!");
 		}
 	}
+}
+
+void VulkanRenderer::CreateUniformBuffers()
+{
+
+	VkDeviceSize bufferSize = sizeof(MVP);
+
+	// One uniform buffer for each image (and by extension, command buffer)
+	uniformBuffer.resize(swapChainImages.size());
+	uniformBufferMemory.resize(swapChainImages.size());
+
+	// Create Uniform buffers
+	for (size_t i = 0; i < swapChainImages.size(); i++)
+	{
+		createBuffer(mainDevice.physicaldevice, mainDevice.logicalDevice, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &uniformBuffer[i], &uniformBufferMemory[i]);
+	}
+}
+
+void VulkanRenderer::CreateDesciptorPool()
+{
+	VkDescriptorPoolSize poolSize = {};
+	poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSize.descriptorCount = static_cast<uint32_t>(uniformBuffer.size());
+
+	// Data to create Descriptor Pool
+	VkDescriptorPoolCreateInfo poolCreateInfo = {};
+	poolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	poolCreateInfo.maxSets = static_cast<uint32_t>(uniformBuffer.size());	// Maximum number of Descriptor Sets that can be created from pool
+	poolCreateInfo.poolSizeCount = 1;										// Amount of Pool Sizes being passed
+	poolCreateInfo.pPoolSizes = &poolSize;									// Pool Sizes to create pool with
+
+	// Create Descriptor Pool
+	VkResult result = vkCreateDescriptorPool(mainDevice.logicalDevice, &poolCreateInfo, nullptr, &descriptorpool);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to create a Descriptor Pool!");
+	}
+}
+
+void VulkanRenderer::CreateDescriptorSets()
+{
+
+	descriptorSets.resize(uniformBuffer.size());
+
+	std::vector<VkDescriptorSetLayout> setLayouts(uniformBuffer.size(), descriptorSetLayout);
+
+	// Descriptor Set Allocation Info
+	VkDescriptorSetAllocateInfo setAllocInfo = {};
+	setAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	setAllocInfo.descriptorPool = descriptorpool;									// Pool to allocate Descriptor Set from
+	setAllocInfo.descriptorSetCount = static_cast<uint32_t>(uniformBuffer.size());	// Number of sets to allocate
+	setAllocInfo.pSetLayouts = setLayouts.data();									// Layouts to use to allocate sets (1:1 relationship)
+
+	// Allocate descriptor sets (multiple)
+	VkResult result = vkAllocateDescriptorSets(mainDevice.logicalDevice, &setAllocInfo, descriptorSets.data());
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Failed to allocate Descriptor Sets!");
+	}
+
+	// Update all of descriptor set buffer bindings
+	for (size_t i = 0; i < uniformBuffer.size(); i++)
+	{
+		// Buffer info and data offset info
+		VkDescriptorBufferInfo mvpBufferInfo = {};
+		mvpBufferInfo.buffer = uniformBuffer[i];		// Buffer to get data from
+		mvpBufferInfo.offset = 0;						// Position of start of data
+		mvpBufferInfo.range = sizeof(MVP);				// Size of data
+
+		// Data about connection between binding and buffer
+		VkWriteDescriptorSet mvpSetWrite = {};
+		mvpSetWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		mvpSetWrite.dstSet = descriptorSets[i];								// Descriptor Set to update
+		mvpSetWrite.dstBinding = 0;											// Binding to update (matches with binding on layout/shader)
+		mvpSetWrite.dstArrayElement = 0;									// Index in array to update
+		mvpSetWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;		// Type of descriptor
+		mvpSetWrite.descriptorCount = 1;									// Amount to update
+		mvpSetWrite.pBufferInfo = &mvpBufferInfo;							// Information about buffer data to bind
+
+		// Update the descriptor sets with new buffer/binding info
+		vkUpdateDescriptorSets(mainDevice.logicalDevice, 1, &mvpSetWrite, 0, nullptr);
+	}
+}
+
+void VulkanRenderer::UpdateUniformBuffers(uint32_t imageIndex)
+{
+
+	void* data;
+	vkMapMemory(mainDevice.logicalDevice, uniformBufferMemory[imageIndex], 0, sizeof(MVP), 0, &data);
+	memcpy(data, &mvp, sizeof(MVP));
+	vkUnmapMemory(mainDevice.logicalDevice, uniformBufferMemory[imageIndex]);
+
+
 }

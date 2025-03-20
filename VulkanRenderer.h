@@ -2,6 +2,9 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h" 
+
+#include"glm.hpp"
+#include"gtc/matrix_transform.hpp"
 #include<vector>
 #include"Utilities.h"
 #include<set>
@@ -18,6 +21,10 @@ public:
 
 	void Draw();
 	int Init(GLFWwindow* window);
+
+
+	void UpdateModel(glm::mat4 newModel);
+
 	void CleanUp();
 
 	const std::vector<const char*> validationLayers = {
@@ -36,6 +43,23 @@ private:
 	//scene Objects 
 	std::vector<Mesh> meshList;
 
+
+	struct MVP
+	{
+		glm::mat4 projection; //how it sees 
+		glm::mat4 view;  //camera
+		glm::mat4 model;  //pos
+
+	}mvp;
+
+	VkDescriptorSetLayout descriptorSetLayout;
+
+	std::vector<VkDescriptorSet> descriptorSets;
+
+	VkDescriptorPool descriptorpool;
+
+	std::vector<VkBuffer> uniformBuffer;
+	std::vector<VkDeviceMemory> uniformBufferMemory;
 
 
 
@@ -102,12 +126,19 @@ private:
 	void CreateSwapChain();
 
 	void CreateRenderPass();
+	void CreateDesciptorSetLayout();
 	void CreateGraphicsPipeline();
 	void CreateFrameBuffers();
 	void CreateCommandPool();
 	void CreateCommandBuffers();
 	void RecordCommands();
 	void CreateSynchronization();
+	void CreateUniformBuffers();
+	void CreateDesciptorPool();
+
+	void CreateDescriptorSets();
+
+	void UpdateUniformBuffers(uint32_t imageIndex);
 
 
 	//- Support functions

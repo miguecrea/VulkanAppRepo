@@ -44,9 +44,29 @@ int main()
 		return EXIT_FAILURE;
 	}
 
+
+
+	float angle = 0.0f;
+	float deltaTime = 0.0f;
+	float LastTime = 0.0f;
+
+
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		glfwPollEvents();
+
+
+		float now = glfwGetTime();
+		deltaTime = now - LastTime;
+		LastTime = now;
+
+		angle += 10.f * deltaTime;
+		if (angle > 360.f) { angle -= 360.f; }
+
+		
+		m_VulkanRenderer.UpdateModel(glm::rotate(glm::mat4(1.0f), glm::radians(angle), glm::vec3(0.0f, 0.0f, 1.0f)));
+
+
 		m_VulkanRenderer.Draw();
 	}
 
