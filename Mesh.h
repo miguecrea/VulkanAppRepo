@@ -7,11 +7,23 @@
 
 #include "Utilities.h"
 
+struct Model {
+	glm::mat4 model;
+};
+
 class Mesh
 {
 public:
 	Mesh();
-	Mesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice,VkQueue transferQueue,VkCommandPool transferCommandPool, std::vector<Vertex>* vertices, std::vector<uint32_t>* indices);
+	Mesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, 
+		VkQueue transferQueue, VkCommandPool transferCommandPool, 
+		std::vector<Vertex> * vertices, std::vector<uint32_t> * indices,
+		int newTexId);
+
+	void setModel(glm::mat4 newModel);
+	Model & getModel();
+
+	int getTexId();
 
 	int getVertexCount();
 	VkBuffer getVertexBuffer();
@@ -19,32 +31,26 @@ public:
 	int getIndexCount();
 	VkBuffer getIndexBuffer();
 
-
-
 	void destroyBuffers();
 
 	~Mesh();
 
 private:
+	Model model;
+	int texId;
+
 	int vertexCount;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
 
-
-
 	int indexCount;
-	VkBuffer IndexBuffer;
-	VkDeviceMemory IndexBufferMemory;
-
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
 
 	VkPhysicalDevice physicalDevice;
 	VkDevice device;
 
-	void createVertexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool,std::vector<Vertex>* vertices);
-	void createIndexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<uint32_t>* indices);
-
-
-
-
+	void createVertexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<Vertex> * vertices);
+	void createIndexBuffer(VkQueue transferQueue, VkCommandPool transferCommandPool, std::vector<uint32_t> * indices);
 };
 

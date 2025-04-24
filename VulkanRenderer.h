@@ -1,168 +1,190 @@
 #pragma once
 
 #define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h" 
+#include <GLFW/glfw3.h>
 
-#include"glm.hpp"
-#include"gtc/matrix_transform.hpp"
-#include<vector>
-#include"Utilities.h"
-#include<set>
-#include<algorithm>
-#include"Mesh.h"
+#include <GLM/glm.hpp>
+#include <GLM/gtc/matrix_transform.hpp>
+
+#include <stdexcept>
+#include <vector>
+#include <set>
+#include <algorithm>
+#include <array>
+
+#include "stb_image.h"   //stb image 
+
+#include "Mesh.h"
+#include "VulkanValidation.h"
+#include "Utilities.h"
+#include"MeshModel.h"
+
+//Assimp
+#include"assimp/Importer.hpp"
+#include"assimp/scene.h"
+#include"assimp/postprocess.h"
 
 class VulkanRenderer
 {
-
 public:
-
 	VulkanRenderer();
+
+	int init(GLFWwindow * newWindow);
+
+	void updateModel(int modelId, glm::mat4 newModel);
+
+	void draw();
+	void cleanup();
+
+	void createMeshModel(std::string modelFile);
+
 	~VulkanRenderer();
 
-	void Draw();
-	int Init(GLFWwindow* window);
-
-
-	void UpdateModel(glm::mat4 newModel);
-
-	void CleanUp();
-
-	const std::vector<const char*> validationLayers = {
-	"VK_LAYER_KHRONOS_validation"
-	};
-
-#ifdef NDEBUG
-	const bool enableValidationLayers = false;
-#else
-	const bool enableValidationLayers = true;
-#endif
-
-
 private:
-
-	//scene Objects 
-	std::vector<Mesh> meshList;
-
-
-	struct MVP
-	{
-		glm::mat4 projection; //how it sees 
-		glm::mat4 view;  //camera
-		glm::mat4 model;  //pos
-
-	}mvp;
-
-	VkDescriptorSetLayout descriptorSetLayout;
-
-	std::vector<VkDescriptorSet> descriptorSets;
-
-	VkDescriptorPool descriptorpool;
-
-	std::vector<VkBuffer> uniformBuffer;
-	std::vector<VkDeviceMemory> uniformBufferMemory;
-
-
-
-
-	GLFWwindow * m_Window;
-	VkInstance m_Instance;
+	GLFWwindow * window;
 
 	int currentFrame = 0;
 
+	// Scene Objects
+	std::vector<MeshModel> modelList;
+
+	// Scene Settings
+	struct UboViewProjection {
+		glm::mat4 projection;
+		glm::mat4 view;
+	} uboViewProjection;
+
+	// Vulkan Components
+	// - Main
+	VkInstance instance;
 	VkDebugReportCallbackEXT callback;
-
-	struct 
-	{
-		VkPhysicalDevice physicaldevice;
-		VkDevice  logicalDevice;
+	struct {
+		VkPhysicalDevice physicalDevice;
+		VkDevice logicalDevice;
 	} mainDevice;
-
 	VkQueue graphicsQueue;
-	VkQueue PresentationsQueue;
-
+	VkQueue presentationQueue;
 	VkSurfaceKHR surface;
-	VkSwapchainKHR swapChain;
+	VkSwapchainKHR swapchain;
 
-	//cached values
-
-	VkFormat SwapChainImageFormat;
-	VkExtent2D SwapChainExtend;
-
-
-	std::vector<VkSemaphore>imageAvailable;  //signa when image is available 
-	std::vector<VkSemaphore>RenderFinished; //signal when it ia finiahed rendering  and ready to present to screen
-	std::vector<VkFence> drawFences; 
-
-
-
-	//vector of images struct contains image and image views
 	std::vector<SwapchainImage> swapChainImages;
-	std::vector<VkFramebuffer> swapChainFrameBuffers;  //we gonna have a frame buffer for each image
-	std::vector<VkCommandBuffer> commandBuffers;  
+	std::vector<VkFramebuffer> swapChainFramebuffers;
+	std::vector<VkCommandBuffer> commandBuffers;
+
+	VkImage depthBufferImage;
+	VkDeviceMemory depthBufferImageMemory;
+	VkImageView depthBufferImageView;
+
+	VkSampler textureSampler;
+
+	// - Descriptors
+	VkDescriptorSetLayout descriptorSetLayout;
+	VkDescriptorSetLayout samplerSetLayout;
+	VkPushConstantRange pushConstantRange;
+
+	VkDescriptorPool descriptorPool;
+	VkDescriptorPool samplerDescriptorPool;
+	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<VkDescriptorSet> samplerDescriptorSets;
+
+	std::vector<VkBuffer> vpUniformBuffer;
+	std::vector<VkDeviceMemory> vpUniformBufferMemory;
+
+	std::vector<VkBuffer> modelDUniformBuffer;
+	std::vector<VkDeviceMemory> modelDUniformBufferMemory;
+
+	//VkDeviceSize minUniformBufferOffset;
+	//size_t modelUniformAlignment;
+	//UboModel * modelTransferSpace;
+
+	// - Assets
+	
 
 
-	//Pools
+
+	std::vector<VkImage> textureImages;
+	std::vector<VkDeviceMemory> textureImageMemory;
+	std::vector<VkImageView> textureImageViews;
+
+	// - Pipeline
+	VkPipeline graphicsPipeline;
+	VkPipelineLayout pipelineLayout;
+	VkRenderPass renderPass;
+
+	// - Pools
 	VkCommandPool graphicsCommandPool;
 
+	// - Utility
+	VkFormat swapChainImageFormat;
+	VkExtent2D swapChainExtent;
 
+	// - Synchronisation
+	std::vector<VkSemaphore> imageAvailable;
+	std::vector<VkSemaphore> renderFinished;
+	std::vector<VkFence> drawFences;
 
-
-
-	//pIpleine 
-	VkPipelineLayout pipelineLayout;  
-	VkRenderPass renderPass;
-	VkPipeline graphicsPipeline;
-
-
-
-
-
-	//functions
-	void CreateInstance();
-	void GetPhysicalDevice();
-	void CreateLogicalDevice();
-	void CreateSurface();
+	// Vulkan Functions
+	// - Create Functions
+	void createInstance();
 	void createDebugCallback();
-	void CreateSwapChain();
+	void createLogicalDevice();
+	void createSurface();
+	void createSwapChain();
+	void createRenderPass();
+	void createDescriptorSetLayout();
+	void createPushConstantRange();
+	void createGraphicsPipeline();
+	void createDepthBufferImage();
+	void createFramebuffers();
+	void createCommandPool();
+	void createCommandBuffers();
+	void createSynchronisation();
+	void createTextureSampler();
 
-	void CreateRenderPass();
-	void CreateDesciptorSetLayout();
-	void CreateGraphicsPipeline();
-	void CreateFrameBuffers();
-	void CreateCommandPool();
-	void CreateCommandBuffers();
-	void RecordCommands();
-	void CreateSynchronization();
-	void CreateUniformBuffers();
-	void CreateDesciptorPool();
+	void createUniformBuffers();
+	void createDescriptorPool();
+	void createDescriptorSets();
 
-	void CreateDescriptorSets();
+	void updateUniformBuffers(uint32_t imageIndex);
 
-	void UpdateUniformBuffers(uint32_t imageIndex);
+	// - Record Functions
+	void recordCommands(uint32_t currentImage);
 
+	// - Get Functions
+	void getPhysicalDevice();
 
-	//- Support functions
+	// - Allocate Functions
 
-	//check if we support certaij extensions
-	bool checkIntanceExtensionsSupport(std::vector<const char*> * checkExtensions);
-	bool CheckDeviceSuitable(VkPhysicalDevice device);
-	bool CheckDeviceExtensionSupport(VkPhysicalDevice device);
+	// - Support Functions
+	// -- Checker Functions
+	bool checkInstanceExtensionSupport(std::vector<const char*> * checkExtensions);
+	bool checkDeviceExtensionSupport(VkPhysicalDevice device);
 	bool checkValidationLayerSupport();
+	bool checkDeviceSuitable(VkPhysicalDevice device);
 
-	//getters 
+	// -- Getter Functions
+	QueueFamilyIndices getQueueFamilies(VkPhysicalDevice device);
+	SwapChainDetails getSwapChainDetails(VkPhysicalDevice device);
 
-	QueueFamilyIndices GetQueueFamilies(VkPhysicalDevice device);
-	SwapChainDetails GetSwapChainDetails(VkPhysicalDevice device);
-	VkSurfaceFormatKHR ChooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR> & formats);
-	VkPresentModeKHR ChooseBestPresentationMode(const std::vector<VkPresentModeKHR> & presentationModes);
-	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& surfaceCapabilities);
-	VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
-	VkShaderModule CreateShaderModule(const std::vector<char>& code);
+	// -- Choose Functions
+	VkSurfaceFormatKHR chooseBestSurfaceFormat(const std::vector<VkSurfaceFormatKHR> &formats);
+	VkPresentModeKHR chooseBestPresentationMode(const std::vector<VkPresentModeKHR> presentationModes);
+	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR &surfaceCapabilities);
+	VkFormat chooseSupportedFormat(const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags featureFlags);
+
+	// -- Create Functions
+	VkImage createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags useFlags,
+		VkMemoryPropertyFlags propFlags, VkDeviceMemory *imageMemory);
+	VkImageView createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags);
+	VkShaderModule createShaderModule(const std::vector<char> &code);
+
+	int createTextureImage(std::string fileName);
+	int createTexture(std::string fileName);
+	int createTextureDescriptor(VkImageView textureImage);
 
 
-
-		
-	
+	// -- Loader Functions
+	stbi_uc * loadTextureFile(std::string fileName, int * width, int * height, VkDeviceSize * imageSize);
 
 };
 
