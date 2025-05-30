@@ -80,6 +80,7 @@ private:
 	// - Descriptors
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorSetLayout samplerSetLayout;
+	VkDescriptorSetLayout roughnessSamplerSetLayout; //////added
 	VkPushConstantRange pushConstantRange;
 
 	VkDescriptorPool descriptorPool;
@@ -179,8 +180,8 @@ private:
 	VkShaderModule createShaderModule(const std::vector<char> &code);
 
 	int createTextureImage(std::string fileName);
-	int createTexture(std::string fileName);
-	int createTextureDescriptor(VkImageView textureImage);
+	int createTexture(std::vector<std::string> fileNames);
+	int createTextureDescriptorSet(std::vector<VkImageView> textureImages);
 
 
 	// -- Loader Functions

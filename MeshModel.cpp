@@ -46,21 +46,22 @@ void MeshModel::DestroyMeshModel()
 	}
 }
 
-std::vector<std::string> MeshModel::LoadMaterials(const aiScene * scene)
+
+std::vector<std::vector<std::string>> MeshModel::LoadMaterials(const aiScene* scene)
 {
-	std::vector<std::string> TextureList(scene->mNumMaterials);  //materials present in Model
+	std::vector<std::vector<std::string>> TextureList(scene->mNumMaterials);  //materials present in Model
+
+	printf(">>> number of mat: %d\n", scene->mNumMaterials);
 
 	//go threougt each Material  and copy it is texture  file it it exist
 	for (size_t i = 0; i < scene->mNumMaterials; i++)
 	{
-		aiMaterial * material = scene->mMaterials[i];
+		aiMaterial* material = scene->mMaterials[i];
 
 		//intitilaize the texture to empty string
 
-		TextureList[i] = "";
+		TextureList[i] = {};
 
-
-		//CHECK FOR A difusse texture standart detail Texture
 
 		if (material->GetTextureCount(aiTextureType_DIFFUSE))
 		{
@@ -69,22 +70,68 @@ std::vector<std::string> MeshModel::LoadMaterials(const aiScene * scene)
 			if (material->GetTexture(aiTextureType_DIFFUSE, 0, &path) == AI_SUCCESS)
 			{
 				//cut directory  if 
+				int idx = std::string(path.data).rfind("\\");
+				std::string FileName = std::string(path.data).substr(idx + 1);
+
+				TextureList[i].push_back(FileName);
+			}
+		}
+		else {
+			TextureList[i].push_back("");
+		}
+
+		if (material->GetTextureCount(aiTextureType_GLTF_METALLIC_ROUGHNESS))
+		{
+			aiString path;
+			//get the path of thbis texture 
+			if (material->GetTexture(aiTextureType_GLTF_METALLIC_ROUGHNESS, 0, &path) == AI_SUCCESS)
+			{
+				//cut directory  if 
 
 				int idx = std::string(path.data).rfind("\\");
 				std::string FileName = std::string(path.data).substr(idx + 1);
 
-				TextureList[i] = FileName;
-
+				TextureList[i].push_back(FileName);
 			}
-
+		}
+		else {
+			TextureList[i].push_back("");
 		}
 
+		if (material->GetTextureCount(aiTextureType_NORMALS))
+		{
+			aiString path;
+			//get the path of thbis texture 
+			if (material->GetTexture(aiTextureType_NORMALS, 0, &path) == AI_SUCCESS)
+			{
+				//cut directory  if 
+				int idx = std::string(path.data).rfind("\\");
+				std::string FileName = std::string(path.data).substr(idx + 1);
+				TextureList[i].push_back(FileName);
+			}
+		}
+		else {
+			TextureList[i].push_back("");
+		}
+
+		if (material->GetTextureCount(aiTextureType_EMISSIVE))
+		{
+			aiString path;
+			//get the path of thbis texture 
+			if (material->GetTexture(aiTextureType_EMISSIVE, 0, &path) == AI_SUCCESS)
+			{
+				//cut directory  if 
+				int idx = std::string(path.data).rfind("\\");
+				std::string FileName = std::string(path.data).substr(idx + 1);
+				TextureList[i].push_back(FileName);
+			}
+		}
+		else {
+			TextureList[i].push_back("");
+		}
 	}
 
-
 	return TextureList;
-
-
 }
 
 std::vector<Mesh> MeshModel::LoadNode(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool, aiNode * node, const aiScene* scene, std::vector<int> matToTex)
@@ -144,6 +191,8 @@ Mesh MeshModel::LoadMesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice,
 		{
 			vertices[i].tex = { 0.0f, 0.0f };
 		}
+
+		vertices[i].normal = { mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 
 		// Set colour (just use white for now)
 		vertices[i].col = { 1.0f, 1.0f, 1.0f };

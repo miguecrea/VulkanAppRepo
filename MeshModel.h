@@ -22,7 +22,7 @@ public:
 	void SetModel(glm::mat4 newModel);
 	void DestroyMeshModel();
 
-	static std::vector<std::string> LoadMaterials(const aiScene * scene);
+	static std::vector<std::vector<std::string>> LoadMaterials(const aiScene* scene);
 	static std::vector<Mesh> LoadNode(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool,
 		aiNode* node, const aiScene* scene, std::vector<int> matToTex);
 	static Mesh LoadMesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice, VkQueue transferQueue, VkCommandPool transferCommandPool,
