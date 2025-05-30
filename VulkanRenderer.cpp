@@ -39,46 +39,6 @@ int VulkanRenderer::init(GLFWwindow * newWindow)
 		uboViewProjection.view = glm::lookAt(glm::vec3(5.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		uboViewProjection.projection[1][1] *= 1;
-		// Create a mesh
-		// Vertex Data
-		//std::vector<Vertex> meshVertices = {
-		//	{ { -0.4, 0.4, 0.0 },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 1.0f } },	// 0
-		//{ { -0.4, -0.4, 0.0 },{ 1.0f, 0.0f, 0.0f },{ 1.0f, 0.0f } },	    // 1
-		//{ { 0.4, -0.4, 0.0 },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 0.0f } },    // 2
-		//{ { 0.4, 0.4, 0.0 },{ 1.0f, 0.0f, 0.0f },{ 0.0f, 1.0f } },   // 3
-		//};
-
-		//std::vector<Vertex> meshVertices2 = {
-		//	{ { -0.25, 0.6, 0.0 },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 1.0f } },	// 0
-		//{ { -0.25, -0.6, 0.0 },{ 0.0f, 0.0f, 1.0f },{ 1.0f, 0.0f } },	    // 1
-		//{ { 0.25, -0.6, 0.0 },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 0.0f } },    // 2
-		//{ { 0.25, 0.6, 0.0 },{ 0.0f, 0.0f, 1.0f },{ 0.0f, 1.0f } },   // 3
-		//};
-
-		//// Index Data
-		//std::vector<uint32_t> meshIndices = {
-		//	0, 1, 2,
-		//	2, 3, 0
-		//};
-
-		//Mesh firstMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice,
-		//	graphicsQueue, graphicsCommandPool,
-		//	&meshVertices, &meshIndices,
-		//	createTexture("giraffe.jpg"));
-
-
-		//Mesh secondMesh = Mesh(mainDevice.physicalDevice, mainDevice.logicalDevice,
-		//	graphicsQueue, graphicsCommandPool,
-		//	&meshVertices2, &meshIndices,
-		//	createTexture("panda.jpg"));
-
-		//meshList.push_back(firstMesh);
-		//meshList.push_back(secondMesh);
-
-		// createTexture("plain.png");  //filld escripotor set position 0 
-
-		
-
 
 	}
 	catch (const std::runtime_error& e) {
