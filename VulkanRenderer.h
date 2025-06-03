@@ -70,10 +70,18 @@ private:
 	std::vector<SwapchainImage> swapChainImages;
 	std::vector<VkFramebuffer> swapChainFramebuffers;
 	std::vector<VkCommandBuffer> commandBuffers;
+	VkFramebuffer offscreenFrameBuffer;
 
 	VkImage depthBufferImage;
 	VkDeviceMemory depthBufferImageMemory;
 	VkImageView depthBufferImageView;
+
+	/// <summary>
+	/// added
+	/// </summary>
+	VkImage offscreenDepthBufferImage;
+	VkDeviceMemory offscreenDepthBufferImageMemory;
+	VkImageView offscreenDepthBufferImageView;
 
 	VkSampler textureSampler;
 
@@ -114,6 +122,9 @@ private:
 
 	// - Pools
 	VkCommandPool graphicsCommandPool;
+
+	VkPipeline offscreenPipeline;
+	VkRenderPass offscreenRenderPass;
 
 	// - Utility
 	VkFormat swapChainImageFormat;
