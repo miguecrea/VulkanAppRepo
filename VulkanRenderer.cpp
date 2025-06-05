@@ -16,7 +16,7 @@ int VulkanRenderer::init(GLFWwindow * newWindow)
 
 		createInstance();
 		createDebugCallback();
-		createSurface();
+		createSurface();// w a d t 
 		getPhysicalDevice();
 		createLogicalDevice();
 		createSwapChain();
@@ -162,7 +162,6 @@ void VulkanRenderer::cleanup()
 	vkDestroyCommandPool(mainDevice.logicalDevice, graphicsCommandPool, nullptr);
 
 
-	///
 	for (auto framebuffer : swapChainFramebuffers)
 	{
 		vkDestroyFramebuffer(mainDevice.logicalDevice, framebuffer, nullptr);
@@ -348,10 +347,14 @@ void VulkanRenderer::createSurface()
 
 void VulkanRenderer::createSwapChain()
 {
-	// Get Swap Chain details so we can pick best settings
+	
+	//manages images /frames that are presented to the screen  double  or triple buffering 
+	
 	SwapChainDetails swapChainDetails = getSwapChainDetails(mainDevice.physicalDevice);
 
-	// Find optimal surface values for our swap chain
+
+	//Image format(color type, like RGBA),
+
 	VkSurfaceFormatKHR surfaceFormat = chooseBestSurfaceFormat(swapChainDetails.formats);
 	VkPresentModeKHR presentMode = chooseBestPresentationMode(swapChainDetails.presentationModes);
 	VkExtent2D extent = chooseSwapExtent(swapChainDetails.surfaceCapabilities);
@@ -386,6 +389,7 @@ void VulkanRenderer::createSwapChain()
 	QueueFamilyIndices indices = getQueueFamilies(mainDevice.physicalDevice);
 
 	// If Graphics and Presentation families are different, then swapchain must let images be shared between families
+
 	if (indices.graphicsFamily != indices.presentationFamily)
 	{
 		// Queues to share between
@@ -425,6 +429,10 @@ void VulkanRenderer::createSwapChain()
 	std::vector<VkImage> images(swapChainImageCount);
 	vkGetSwapchainImagesKHR(mainDevice.logicalDevice, swapchain, &swapChainImageCount, images.data());
 
+
+	// Now you extract the actual image handles and make
+	// VkImageViews from them, which are required to use them in framebuffers.
+
 	for (VkImage image : images)
 	{
 		// Store image handle
@@ -440,6 +448,10 @@ void VulkanRenderer::createSwapChain()
 void VulkanRenderer::createRenderPass()
 {
 	{
+
+
+
+		//has attaxchem
 		// ATTACHMENTS
 		// Colour attachment of render pass
 		VkAttachmentDescription colourAttachment = {};
@@ -781,6 +793,7 @@ void VulkanRenderer::createGraphicsPipeline()
 	viewport.height = (float)swapChainExtent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
+
 	// Create a scissor info struct
 	VkRect2D scissor = {};
 	scissor.offset = { 0,0 };
@@ -1289,7 +1302,7 @@ void VulkanRenderer::recordCommands(uint32_t currentImage)
 		renderPassBeginInfo.renderArea.extent = swapChainExtent;				// Size of region to run render pass on (starting at offset)
 
 		std::array<VkClearValue, 2> clearValues = {};
-		clearValues[0].color = { 0.6f, 0.65f, 0.4f, 1.0f };
+		clearValues[0].color = { 0.6f, 0.f,0.f, 1.0f };
 		clearValues[1].depthStencil.depth = 1.0f;
 
 		renderPassBeginInfo.pClearValues = clearValues.data();					// List of clear values

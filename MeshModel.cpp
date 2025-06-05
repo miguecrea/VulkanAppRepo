@@ -171,12 +171,6 @@ Mesh MeshModel::LoadMesh(VkPhysicalDevice newPhysicalDevice, VkDevice newDevice,
 	// Go through each vertex and copy it across to our vertices
 
 
-
-
-
-	
-
-
 	for (size_t i = 0; i < mesh->mNumVertices; i++)
 	{
 		// Set position
